@@ -42,7 +42,7 @@ export async function getTransactions(params?: {
     });
 
   if (search) {
-    query = query.ilike("description", `%${search}`);
+    query = query.ilike("description", `%${search}%`);
   }
 
   const from = (page - 1) * limit;
