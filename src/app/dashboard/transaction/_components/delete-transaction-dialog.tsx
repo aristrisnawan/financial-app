@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { deleteTransaction } from "@/features/transaction/action";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
 
@@ -20,12 +20,12 @@ export default function DeleteTransactionDialog({
 }: {
   selectedTransaction: {
     data: Omit<Transaction, "user_id" | "embedding">;
-    action: "edit" | "delete";
+    action: "update" | "delete";
   } | null;
   setSelectedTransaction: Dispatch<
     SetStateAction<{
       data: Omit<Transaction, "user_id" | "embedding">;
-      action: "edit" | "delete";
+      action: "update" | "delete";
     } | null>
   >;
   refetch: () => void;
@@ -57,25 +57,25 @@ export default function DeleteTransactionDialog({
             This action cannot undone. This will permanently delete your
             transaction data from the databse.
           </DialogDescription>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setSelectedTransaction(null)}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={isPending}
-              onClick={() => {
-                if (selectedTransaction) mutate(selectedTransaction.data.id);
-              }}
-            >
-              {isPending ? "Deleting" : "Delete"}
-            </Button>
-          </DialogFooter>
         </DialogHeader>
+        <DialogFooter>
+          <Button
+            variant="ghost"
+            onClick={() => setSelectedTransaction(null)}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={isPending}
+            onClick={() => {
+              if (selectedTransaction) mutate(selectedTransaction.data.id);
+            }}
+          >
+            {isPending ? "Deleting" : "Delete"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
