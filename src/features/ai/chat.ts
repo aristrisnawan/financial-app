@@ -10,7 +10,7 @@ const ai = new GoogleGenAI({
 export async function handleChat(message: string) {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: "Kamu itu siapa?",
+    contents: message,
     config: {},
   });
   return response.text;

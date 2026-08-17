@@ -4,11 +4,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { SendIcon } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
 import z from "zod";
+import { KeyboardEvent } from "react";
 
 const formSchema = z.object({
   message: z.string().min(1, "Message is required"),
 });
-export default function ChatbotTextarea() {
+export default function ChatbotTextarea({
+  sendMessage,
+}: {
+  sendMessage: (message: string) => void;
+}) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -17,20 +22,32 @@ export default function ChatbotTextarea() {
   });
 
   function onSubmit(data: z.infer<typeof formSchema>) {
+    sendMessage(data.message);
     form.reset();
   }
+
+  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      onSubmit(form.getValues());
+    }
+  }
   return (
-    <form className="flex flex-col bg-secondary rounded-2xl p-2">
+    <form
+      onSubmit={form.handleSubmit(onSubmit)}
+      className="flex flex-col bg-secondary rounded-2xl p-2"
+    >
       <Controller
         control={form.control}
         name="message"
-        render={({ field, fieldState }) => (
+        render={({ field }) => (
           <Field>
             <textarea
               {...field}
               id="form-message"
               placeholder="Ask AI Advisor here"
               autoComplete="off"
+              onKeyDown={handleKeyDown}
               className="h-16 resize-none rounded-md px-3 py-2 focus:outline-none"
             />
           </Field>
