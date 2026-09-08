@@ -10,11 +10,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Controller, useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { handleWizardInput } from "@/features/ai/chat";
+import { createTransaction } from "@/features/transaction/action";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   message: z.string().min(1, "Message is required"),
 });
-export default function WizardInput() {
+export default function WizardInput({ refetch }: { refetch: () => void }) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -23,13 +25,26 @@ export default function WizardInput() {
   });
 
   const { mutate, isPending } = useMutation({
-    mutationFn: handleWizardInput,
-    onSuccess: (response) => {
-      console.log(response);
+    mutationFn: async (message: string) => {
+      const aiResponse = await handleWizardInput(message);
+
+      if (!aiResponse) {
+        throw new Error("Failed to process AI input");
+      }
+
+      return createTransaction(aiResponse);
+    },
+    onSuccess: () => {
+      toast.success("Transaction created successfully");
+      refetch();
       form.reset();
     },
     onError: (error) => {
-      console.log(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to process your request",
+      );
     },
   });
 
