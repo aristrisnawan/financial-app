@@ -2,6 +2,7 @@
 
 import { Conversation } from "@/app/types/ai";
 import { createAI } from "./instance";
+import z from "zod";
 
 export async function handleChat(
   conversation: Conversation[],
@@ -148,13 +149,66 @@ export async function* handleChatStreaming(
   }
 }
 
+const transactionSchema = z.object({
+  amount: z.number().default(0).describe("Transaction nominal"),
+  type: z.enum(["income", "expense"]).describe("Type of transaction"),
+  category: z
+    .enum([
+      "Food & Drink",
+      "Shopping",
+      "Housing",
+      "Transportation",
+      "Entertainment",
+      "Salary",
+      "Others",
+    ])
+    .describe("Category of transaction"),
+  description: z.string().describe("Short text for describing transaction"),
+  date: z.string().describe("The date in YYYY-MM-DD format"),
+});
+
 export async function handleWizardInput(message: string) {
+  const contents = `
+  <role>
+    You are an AI wizard finance assistance, who can extract transaction detalis from text
+  </role>
+  <intstruction>
+    Extract the transaction details from the following text and return it as a structure JSON object.
+    The JSON object must have exaclty these fields:
+    - "amount" : a number representing the cost (positive). Use 0 if not provided.
+    - "type" : type of transaction, either 'income' or 'expense'.
+    - "category" : choose the most appropriate category from this exact list:
+              "Food & Drink","Shopping","Housing","Transportation","Entertainment",Salary","Others".
+    - "description" : a short string describing the transaction, first letter capitalized.
+    - "date" : Date of transaction in YYYY-MM-DD format.
+               Assume the current date if relative terms like 'today' or 'just now'. If not define use current date.
+  </instruction>
+
+  <context>
+    Current Date : ${new Date().toISOString()}
+  </context>
+
+  <input>
+    Text to extract: ${message} 
+  </input>
+
+  <outputFormat>
+    Response with only the row JSON object, no markdown blocks, no text before or after.
+  </outputFormat>
+  `;
   const ai = createAI();
-  const contents = `${message}`;
   const response = await ai.models.generateContent({
     model: "gemini-3.5-flash",
     contents,
-    config: {},
+    config: {
+      responseMimeType: "application/json",
+      responseJsonSchema: z.toJSONSchema(transactionSchema),
+    },
   });
-  return response.text;
+
+  const transaction = transactionSchema.parse(JSON.parse(`${response.text}`));
+  if (transaction.amount <= 0) {
+    throw new Error("Cannot create transaction with invalid amount");
+  }
+  return transaction;
 }
